@@ -1,0 +1,60 @@
+{
+  "enabled": true,
+  "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+  "botName": "RJ SIYAM TG BOT",
+  "prefix": ",",
+  "language": "bn",
+  "owner": {
+    "ids": ["YOUR_TELEGRAM_USER_ID"]
+  },
+  "admins": [],
+  "whitelist": {
+    "enabled": false,
+    "ids": []
+  },
+  "adminOnly": {
+    "enabled": false,
+    "ignoreCommands": ["start", "help", "ping", "id"]
+  },
+  "permissions": {
+    "allowPrivate": true,
+    "allowGroups": true,
+    "allowChannels": false,
+    "allowOnlyGroupAdminsForModeration": true,
+    "allowBotCommands": false
+  },
+  "security": {
+    "blockBots": true,
+    "blockUnknownUsers": false,
+    "blockUnknownGroups": false
+  },
+  "cooldown": {
+    "enabled": true,
+    "defaultSeconds": 1
+  },
+  "polling": {
+    "enabled": true,
+    "timeout": 30,
+    "retryDelayMs": 3000,
+    "dropPendingUpdates": false
+  },
+  "features": {
+    "commands": true,
+    "events": true,
+    "onChat": true,
+    "onAnyEvent": true,
+    "onEvent": true,
+    "onReaction": true,
+    "callbacks": true,
+    "welcome": true,
+    "goodbye": true,
+    "database": true,
+    "cooldown": true
+  },
+  "logging": {
+    "enabled": true,
+    "showCommands": true,
+    "showErrors": true,
+    "showEvents": true
+  }
+}
