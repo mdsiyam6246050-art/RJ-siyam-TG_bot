@@ -1,0 +1,16 @@
+{
+  "name": "rj-siyam-tg-bot",
+  "version": "1.0.0",
+  "description": "RJ Siyam Telegram Bot",
+  "main": "start.js",
+  "author": "Siyam",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "check": "node --check start.js"
+  }
+}
