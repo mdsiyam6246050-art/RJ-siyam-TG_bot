@@ -1,93 +1,63 @@
-
 "use strict";
 
 class TelegramContext {
-    constructor(bot, update) {
-        this.bot = bot;
-        this.api = bot.api;
-        this.update = update;
+  constructor(bot, update) {
+    this.bot = bot;
+    this.update = update;
 
-        this.message =
-            update.message ||
-            update.edited_message ||
-            update.channel_post ||
-            null;
+    this.message =
+      update.message ||
+      update.edited_message ||
+      update.channel_post ||
+      null;
 
-        this.callback = update.callback_query || null;
+    this.callbackQuery = update.callback_query || null;
 
-        this.chat = this.message?.chat || this.callback?.message?.chat || null;
-        this.from = this.message?.from || this.callback?.from || null;
+    this.chat = this.message
+      ? this.message.chat
+      : this.callbackQuery?.message?.chat || null;
 
-        this.text = this.message?.text || this.message?.caption || "";
-        this.chatId = this.chat?.id;
-        this.userId = this.from?.id;
-        this.messageId = this.message?.message_id;
+    this.from = this.message
+      ? this.message.from
+      : this.callbackQuery?.from || null;
 
-        this.isGroup = ["group", "supergroup"].includes(this.chat?.type);
-        this.isPrivate = this.chat?.type === "private";
-        this.isChannel = this.chat?.type === "channel";
-        this.isCallback = Boolean(this.callback);
+    this.text = this.message?.text || this.message?.caption || "";
 
-        this.args = [];
-        this.commandName = "";
-        this.prefix = bot.config.prefix || ",";
-    }
+    this.chatId = this.chat?.id || null;
+    this.userId = this.from?.id || null;
+    this.messageId = this.message?.message_id || null;
 
-    reply(text, options = {}) {
-        if (!this.chatId) {
-            throw new Error("Chat ID not available");
-        }
+    this.isGroup = ["group", "supergroup"].includes(this.chat?.type);
+    this.isPrivate = this.chat?.type === "private";
+    this.isChannel = this.chat?.type === "channel";
+    this.isCallback = Boolean(this.callbackQuery);
+  }
 
-        return this.api.sendMessage(this.chatId, text, {
-            reply_to_message_id: this.messageId,
-            ...options
-        });
-    }
+  async reply(text, options = {}) {
+    if (!this.chatId) return null;
 
-    sendMessage(text, options = {}) {
-        return this.api.sendMessage(this.chatId, text, options);
-    }
+    return this.bot.api.sendMessage(
+      this.chatId,
+      String(text),
+      {
+        reply_to_message_id: this.messageId || undefined,
+        ...options
+      }
+    );
+  }
 
-    sendPhoto(photo, options = {}) {
-        return this.api.sendPhoto(this.chatId, photo, options);
-    }
+  async send(text, options = {}) {
+    return this.reply(text, options);
+  }
 
-    sendDocument(document, options = {}) {
-        return this.api.sendDocument(this.chatId, document, options);
-    }
+  async answerCallback(text = "") {
+    if (!this.callbackQuery) return null;
 
-    sendVideo(video, options = {}) {
-        return this.api.sendVideo(this.chatId, video, options);
-    }
-
-    sendAudio(audio, options = {}) {
-        return this.api.sendAudio(this.chatId, audio, options);
-    }
-
-    edit(text, options = {}) {
-        return this.api.editMessageText(
-            this.chatId,
-            this.messageId,
-            text,
-            options
-        );
-    }
-
-    delete() {
-        return this.api.deleteMessage(this.chatId, this.messageId);
-    }
-
-    async getUserRole() {
-        return this.bot.permissions.getRole(this);
-    }
-
-    get isReply() {
-        return Boolean(this.message?.reply_to_message);
-    }
-
-    get replyMessage() {
-        return this.message?.reply_to_message || null;
-    }
+    return this.bot.api.answerCallbackQuery(
+      this.callbackQuery.id,
+      text
+    );
+  }
 }
 
 module.exports = TelegramContext;
