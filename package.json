@@ -1,6 +1,7 @@
+
 {
   "name": "rj-siyam-tg-bot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RJ Siyam Telegram Bot",
   "main": "start.js",
   "author": "Siyam",
@@ -11,6 +12,13 @@
   },
   "scripts": {
     "start": "node start.js",
-    "check": "node --check start.js && node --check index.js && node --check core/bot.js && node --check core/api.js && node --check core/context.js && node --check core/permissions.js && node --check handlers/commandHandler.js && node --check handlers/messageHandler.js && node --check handlers/eventHandler.js && node --check loader/loadCommands.js && node --check loader/loadEvents.js"
+    "check": "node --check start.js && node --check index.js && node --check core/api.js && node --check core/bot.js && node --check core/context.js && node --check core/permissions.js && node --check handlers/commandHandler.js && node --check handlers/messageHandler.js && node --check handlers/eventHandler.js && node --check loader/loadCommands.js && node --check loader/loadEvents.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "canvas": "^2.11.2",
+    "form-data": "^4.0.1",
+    "fs-extra": "^11.2.0",
+    "sagor-video-downloader": "latest"
   }
 }
