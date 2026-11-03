@@ -1,3 +1,4 @@
+
 "use strict";
 
 class EventHandler {
@@ -17,11 +18,20 @@ class EventHandler {
       if (typeof event[method] !== "function") continue;
 
       try {
-        await event[method](ctx, this.bot);
+        if (method === "onChat" || method === "onAnyEvent" || method === "onReaction") {
+          await event[method](ctx, this.bot);
+        } else {
+          await event[method]({
+            ctx,
+            bot: this.bot,
+            api: this.bot.api,
+            reply: (text, options) => ctx.reply(text, options)
+          });
+        }
       } catch (error) {
         console.error(
           `[EVENT ERROR] ${event.config?.name || "Unknown"}:`,
-          error.message
+          error.stack || error
         );
       }
     }
