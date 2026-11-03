@@ -1,61 +1,63 @@
-
 "use strict";
 
 const fs = require("fs");
 const path = require("path");
 const TelegramBot = require("./core/bot");
 
-let bot = null;
+let botInstance = null;
 
 function readConfig() {
-    const file = path.join(__dirname, "config.json");
+  const configPath = path.join(__dirname, "config.json");
 
-    if (!fs.existsSync(file)) {
-        throw new Error("telegram/config.json not found");
-    }
+  if (!fs.existsSync(configPath)) {
+    throw new Error("config.json file not found!");
+  }
 
-    const config = JSON.parse(fs.readFileSync(file, "utf8"));
+  const config = JSON.parse(
+    fs.readFileSync(configPath, "utf8")
+  );
 
-    if (!config.enabled) {
-        throw new Error("Telegram bot is disabled in config.json");
-    }
+  if (config.enabled !== true) {
+    throw new Error("Telegram bot is disabled in config.json");
+  }
 
-    if (!config.botToken || config.botToken.includes("PASTE_YOUR")) {
-        throw new Error("Please set botToken in telegram/config.json");
-    }
+  if (
+    !config.botToken ||
+    config.botToken.includes("PASTE_YOUR") ||
+    config.botToken.includes("YOUR_TELEGRAM")
+  ) {
+    throw new Error("Please add your Telegram bot token in config.json");
+  }
 
-    return config;
+  return config;
 }
 
 async function startTelegram() {
-    if (bot) return bot;
+  if (botInstance) return botInstance;
 
-    const config = readConfig();
-    bot = new TelegramBot(config);
+  const config = readConfig();
+  const bot = new TelegramBot(config);
 
-    try {
-        await bot.start();
-        console.log("[TELEGRAM] Bot started successfully");
-        return bot;
-    } catch (error) {
-        bot = null;
-        console.error("[TELEGRAM] Startup failed:", error);
-        throw error;
-    }
+  try {
+    await bot.start();
+    botInstance = bot;
+    return bot;
+  } catch (error) {
+    botInstance = null;
+    throw error;
+  }
 }
 
 async function stopTelegram() {
-    if (!bot) return;
+  if (!botInstance) return;
 
-    const currentBot = bot;
-    bot = null;
+  const bot = botInstance;
+  botInstance = null;
 
-    await currentBot.stop();
-    console.log("[TELEGRAM] Bot stopped");
+  await bot.stop();
 }
 
 module.exports = {
-    startTelegram,
-    stopTelegram
+  startTelegram,
+  stopTelegram
 };
-        
