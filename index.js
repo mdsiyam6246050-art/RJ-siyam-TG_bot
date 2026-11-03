@@ -1,3 +1,4 @@
+
 "use strict";
 
 const fs = require("fs");
@@ -7,26 +8,35 @@ const TelegramBot = require("./core/bot");
 let botInstance = null;
 
 function readConfig() {
-  const configPath = path.join(__dirname, "config.json");
+  const privateConfig = path.join(__dirname, "config.json");
+  const exampleConfig = path.join(__dirname, "config.example.json");
+
+  const configPath = fs.existsSync(privateConfig)
+    ? privateConfig
+    : exampleConfig;
 
   if (!fs.existsSync(configPath)) {
-    throw new Error("config.json file not found!");
+    throw new Error("config.json or config.example.json not found");
   }
 
   const config = JSON.parse(
     fs.readFileSync(configPath, "utf8")
   );
 
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    config.botToken = process.env.TELEGRAM_BOT_TOKEN;
+  }
+
   if (config.enabled !== true) {
-    throw new Error("Telegram bot is disabled in config.json");
+    throw new Error("Telegram bot is disabled");
   }
 
   if (
     !config.botToken ||
-    config.botToken.includes("PASTE_YOUR") ||
-    config.botToken.includes("YOUR_TELEGRAM")
+    config.botToken.includes("YOUR_TELEGRAM") ||
+    config.botToken.includes("PASTE_YOUR")
   ) {
-    throw new Error("Please add your Telegram bot token in config.json");
+    throw new Error("Telegram Bot Token is missing");
   }
 
   return config;
@@ -38,14 +48,10 @@ async function startTelegram() {
   const config = readConfig();
   const bot = new TelegramBot(config);
 
-  try {
-    await bot.start();
-    botInstance = bot;
-    return bot;
-  } catch (error) {
-    botInstance = null;
-    throw error;
-  }
+  await bot.start();
+  botInstance = bot;
+
+  return bot;
 }
 
 async function stopTelegram() {
