@@ -1,34 +1,39 @@
-
 "use strict";
 
-class TelegramMessageHandler {
-    constructor(bot) {
-        this.bot = bot;
+const TelegramContext = require("../core/context");
+
+class MessageHandler {
+  constructor(bot) {
+    this.bot = bot;
+  }
+
+  async handle(update) {
+    const ctx = new TelegramContext(this.bot, update);
+
+    if (ctx.from?.is_bot && this.bot.config.security?.blockBots !== false) {
+      return;
     }
 
-    async handle(ctx) {
-        if (!ctx.message) return;
+    if (ctx.message) {
+      if (this.bot.config.features?.onAnyEvent !== false) {
+        await this.bot.eventHandler.dispatch("onAnyEvent", ctx);
+      }
 
-        if (ctx.from?.is_bot && this.bot.config.security?.blockBots) {
-            return;
-        }
+      if (this.bot.config.features?.onChat !== false) {
+        await this.bot.eventHandler.dispatch("onChat", ctx);
+      }
 
-        if (ctx.userId) {
-            await this.bot.database.createUser(ctx);
-        }
-
-        if (ctx.isGroup) {
-            await this.bot.database.createGroup(ctx);
-        }
-
-        await this.bot.events.dispatch("onAnyEvent", ctx);
-
-        const handled = await this.bot.commandHandler.handle(ctx);
-
-        if (!handled) {
-            await this.bot.events.dispatch("onChat", ctx);
-        }
+      await this.bot.commandHandler.handle(ctx);
+      return;
     }
+
+    if (ctx.callbackQuery) {
+      if (this.bot.config.features?.callbacks !== false) {
+        await this.bot.eventHandler.dispatch("onCallback", ctx);
+        await ctx.answerCallback();
+      }
+    }
+  }
 }
 
-module.exports = TelegramMessageHandler;
+module.exports = MessageHandler;
