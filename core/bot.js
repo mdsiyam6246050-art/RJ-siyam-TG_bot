@@ -1,150 +1,106 @@
-
 "use strict";
 
 const TelegramAPI = require("./api");
-const TelegramContext = require("./context");
-const TelegramPermissions = require("./permissions");
-const TelegramLanguage = require("./language");
-const TelegramDatabase = require("./database");
-const TelegramCooldown = require("./cooldown");
-const TelegramReply = require("./reply");
+const Permissions = require("./permissions");
+const CommandHandler = require("../handlers/commandHandler");
+const MessageHandler = require("../handlers/messageHandler");
+const EventHandler = require("../handlers/eventHandler");
 
 const loadCommands = require("../loader/loadCommands");
 const loadEvents = require("../loader/loadEvents");
 
-const CommandHandler = require("../handlers/commandHandler");
-const MessageHandler = require("../handlers/messageHandler");
-const EventHandler = require("../handlers/eventHandler");
-const CallbackHandler = require("../handlers/callbackHandler");
-const ReplyHandler = require("../handlers/replyHandler");
-const ReactionHandler = require("../handlers/reactionHandler");
-const ErrorHandler = require("../handlers/errorHandler");
-
 class TelegramBot {
-    constructor(config) {
-        this.config = config;
+  constructor(config) {
+    this.config = config;
+    this.api = new TelegramAPI(config.botToken);
 
-        this.api = new TelegramAPI(config.botToken);
-        this.permissions = new TelegramPermissions(this);
-        this.language = new TelegramLanguage(config);
-        this.database = new TelegramDatabase();
-        this.cooldown = new TelegramCooldown();
-        this.reply = new TelegramReply();
+    this.commands = new Map();
+    this.running = false;
+    this.offset = 0;
+    this.pollController = null;
 
-        this.commands = new Map();
-        this.aliases = new Map();
+    this.permissions = new Permissions(this);
+    this.commandHandler = new CommandHandler(this);
+    this.messageHandler = new MessageHandler(this);
+    this.eventHandler = new EventHandler(this);
+  }
 
-        this.events = new EventHandler(this);
+  async start() {
+    const me = await this.api.getMe();
 
-        this.commandHandler = new CommandHandler(this);
-        this.messageHandler = new MessageHandler(this);
-        this.callbackHandler = new CallbackHandler(this);
-        this.replyHandler = new ReplyHandler(this);
-        this.reactionHandler = new ReactionHandler(this);
-        this.errorHandler = new ErrorHandler();
+    await this.api.deleteWebhook(
+      this.config.polling?.dropPendingUpdates === true
+    );
 
-        this.me = null;
-        this.offset = 0;
-        this.running = false;
-        this.pollingController = null;
-    }
+    console.log(`[BOT] Connected as @${me.username || me.id}`);
 
-    createContext(update) {
-        return new TelegramContext(this, update);
-    }
+    loadCommands(this);
+    loadEvents(this);
 
-    async start() {
-        if (this.running) return;
+    this.running = true;
 
-        this.me = await this.api.getMe();
+    // Polling আলাদাভাবে চলবে; start() সঙ্গে সঙ্গে ফিরে আসবে।
+    this.poll().catch(error => {
+      console.error("[POLLING FATAL ERROR]", error);
+      this.running = false;
+    });
 
-        await this.api.request("deleteWebhook", {
-            drop_pending_updates: Boolean(
-                this.config.polling?.dropPendingUpdates
-            )
-        });
+    return me;
+  }
 
-        loadCommands(this);
-        loadEvents(this);
+  async poll() {
+    const timeout = Math.min(
+      50,
+      Math.max(1, Number(this.config.polling?.timeout || 30))
+    );
 
-        this.running = true;
+    while (this.running) {
+      this.pollController = new AbortController();
 
-        console.log(
-            `[TELEGRAM] Logged in as @${this.me.username || this.me.id}`
+      try {
+        const updates = await this.api.getUpdates(
+          this.offset,
+          timeout,
+          this.pollController.signal
         );
 
-        this.poll();
+        for (const update of updates) {
+          if (!this.running) break;
+
+          this.offset = update.update_id + 1;
+
+          try {
+            await this.messageHandler.handle(update);
+          } catch (error) {
+            console.error("[UPDATE ERROR]", error);
+          }
+        }
+      } catch (error) {
+        if (!this.running) break;
+
+        if (error.name === "AbortError") continue;
+
+        console.error("[POLLING ERROR]", error.message);
+
+        await new Promise(resolve => {
+          setTimeout(
+            resolve,
+            Number(this.config.polling?.retryDelayMs || 3000)
+          );
+        });
+      } finally {
+        this.pollController = null;
+      }
     }
+  }
 
-    async poll() {
-        while (this.running) {
-            try {
-                const updates = await this.api.getUpdates(
-                    this.offset,
-                    this.config.polling?.timeout || 30
-                );
+  async stop() {
+    this.running = false;
 
-                for (const update of updates) {
-                    this.offset = update.update_id + 1;
-
-                    try {
-                        await this.handleUpdate(update);
-                    } catch (error) {
-                        this.errorHandler.handle(error, "UPDATE");
-                    }
-                }
-            } catch (error) {
-                if (!this.running) break;
-
-                this.errorHandler.handle(error, "POLLING");
-
-                await new Promise(resolve =>
-                    setTimeout(
-                        resolve,
-                        this.config.polling?.retryDelayMs || 3000
-                    )
-                );
-            }
-        }
+    if (this.pollController) {
+      this.pollController.abort();
     }
-
-    async handleUpdate(update) {
-        const ctx = this.createContext(update);
-
-        if (update.message || update.edited_message) {
-            if (ctx.isReply) {
-                const handled = await this.replyHandler.handle(ctx);
-                if (handled) return;
-            }
-
-            await this.messageHandler.handle(ctx);
-            return;
-        }
-
-        if (update.callback_query) {
-            await this.callbackHandler.handle(update);
-            return;
-        }
-
-        if (update.message_reaction) {
-            await this.reactionHandler.handle(update);
-            return;
-        }
-
-        await this.events.dispatch("onEvent", ctx);
-    }
-
-    async stop() {
-        this.running = false;
-
-        if (this.pollingController) {
-            this.pollingController.abort();
-        }
-
-        this.reply.clear();
-        this.cooldown.clear();
-    }
+  }
 }
 
 module.exports = TelegramBot;
-          
