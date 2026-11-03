@@ -1,107 +1,87 @@
-
 "use strict";
 
-class TelegramPermissions {
-    constructor(bot) {
-        this.bot = bot;
-        this.config = bot.config;
-    }
+class Permissions {
+  constructor(bot) {
+    this.bot = bot;
+    this.config = bot.config;
+  }
 
-    includes(list, id) {
-        return (list || []).map(String).includes(String(id));
-    }
+  ids(list = []) {
+    return list.map(String);
+  }
 
-    isOwner(userId) {
-        return this.includes(this.config.owner?.ids, userId);
-    }
+  isOwner(userId) {
+    const owners = this.config.owner?.ids || [];
+    return this.ids(owners).includes(String(userId));
+  }
 
-    isAdmin(userId) {
-        return this.isOwner(userId) ||
-            this.includes(this.config.admins, userId);
-    }
+  isAdmin(userId) {
+    const admins = this.config.admins || [];
 
-    isWhitelisted(userId) {
-        return this.includes(this.config.whitelist?.ids, userId);
-    }
+    return (
+      this.isOwner(userId) ||
+      this.ids(admins).includes(String(userId))
+    );
+  }
 
-    async isGroupAdmin(chatId, userId) {
-        try {
-            const member = await this.bot.api.getChatMember(chatId, userId);
+  isWhitelisted(userId) {
+    const whitelist = this.config.whitelist || {};
 
-            return ["creator", "administrator"].includes(member.status);
-        } catch {
-            return false;
-        }
-    }
+    if (!whitelist.enabled) return true;
 
-    async getRole(ctx) {
-        if (this.isOwner(ctx.userId)) return 3;
-        if (this.isAdmin(ctx.userId)) return 2;
+    return (
+      this.isOwner(userId) ||
+      this.ids(whitelist.ids || []).includes(String(userId))
+    );
+  }
 
-        if (ctx.isGroup && await this.isGroupAdmin(ctx.chatId, ctx.userId)) {
-            return 1;
-        }
+  async getRole(ctx) {
+    if (this.isOwner(ctx.userId)) return 3;
+    if (this.isAdmin(ctx.userId)) return 2;
 
-        return 0;
-    }
-
-    async check(ctx, command) {
-        const config = this.config;
-        const name = command.config.name;
-        const role = await this.getRole(ctx);
-
-        if (config.security?.blockBots && ctx.from?.is_bot) {
-            return { allowed: false, reason: "bot" };
-        }
-
-        if (ctx.isPrivate && !config.permissions?.allowPrivate) {
-            return { allowed: false, reason: "private" };
-        }
-
-        if (ctx.isGroup && !config.permissions?.allowGroups) {
-            return { allowed: false, reason: "group" };
-        }
-
-        if (ctx.isChannel && !config.permissions?.allowChannels) {
-            return { allowed: false, reason: "channel" };
-        }
+    if (ctx.isGroup && ctx.userId) {
+      try {
+        const member = await this.bot.api.getChatMember(
+          ctx.chatId,
+          ctx.userId
+        );
 
         if (
-            config.whitelist?.enabled &&
-            !this.isWhitelisted(ctx.userId) &&
-            !this.isAdmin(ctx.userId)
+          member.status === "creator" ||
+          member.status === "administrator"
         ) {
-            return { allowed: false, reason: "whitelist" };
+          return 1;
         }
-
-        const roleConfig = command.config.role ?? 0;
-        const requiredRole =
-            typeof roleConfig === "number"
-                ? roleConfig
-                : roleConfig.onStart ?? 0;
-
-        if (role < requiredRole) {
-            return { allowed: false, reason: "role" };
-        }
-
-        const adminOnly = config.adminOnly || {};
-
-        if (
-            adminOnly.enabled &&
-            !this.isAdmin(ctx.userId) &&
-            !(adminOnly.ignoreCommands || []).includes(name)
-        ) {
-            return { allowed: false, reason: "adminOnly" };
-        }
-
-        return {
-            allowed: true,
-            role,
-            isOwner: this.isOwner(ctx.userId),
-            isAdmin: this.isAdmin(ctx.userId)
-        };
+      } catch (_) {}
     }
+
+    return 0;
+  }
+
+  async canUse(ctx) {
+    const permissions = this.config.permissions || {};
+
+    if (ctx.isPrivate && permissions.allowPrivate === false) {
+      return false;
+    }
+
+    if (ctx.isGroup && permissions.allowGroups === false) {
+      return false;
+    }
+
+    if (ctx.isChannel && permissions.allowChannels !== true) {
+      return false;
+    }
+
+    if (
+      ctx.from?.is_bot &&
+      permissions.allowBotCommands !== true
+    ) {
+      return false;
+    }
+
+    return true;
+  }
 }
 
-module.exports = TelegramPermissions;
-      
+module.exports = Permissions;
