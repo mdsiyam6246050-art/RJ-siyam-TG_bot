@@ -41,7 +41,7 @@ class CommandHandler {
       !(adminOnly.ignoreCommands || []).includes(commandName) &&
       role < 2
     ) {
-      await ctx.reply("এই কমান্ডটি শুধু অ্যাডমিন ব্যবহার করতে পারবে।");
+      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।।");
       return true;
     }
 
@@ -49,7 +49,7 @@ class CommandHandler {
       command.config?.role === "owner" &&
       role < 3
     ) {
-      await ctx.reply("এই কমান্ডটি শুধু বটের মালিক ব্যবহার করতে পারবে।");
+      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।।");
       return true;
     }
 
@@ -57,7 +57,7 @@ class CommandHandler {
       command.config?.role === "admin" &&
       role < 2
     ) {
-      await ctx.reply("এই কমান্ডটি শুধু অ্যাডমিন ব্যবহার করতে পারবে।");
+      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।");
       return true;
     }
 
@@ -65,7 +65,7 @@ class CommandHandler {
       command.config?.role === "groupAdmin" &&
       role < 1
     ) {
-      await ctx.reply("এই কমান্ডটি শুধু গ্রুপ অ্যাডমিন ব্যবহার করতে পারবে।");
+      await ctx.reply("তুই আবাল 😜 𝐎𝐍𝐋𝐘 𝐌𝐘 𝐁𝐎𝐎𝐒 𝐒𝐈𝐘𝐀𝐌।।");
       return true;
     }
 
@@ -101,7 +101,7 @@ class CommandHandler {
       });
     } catch (error) {
       console.error(`[COMMAND ERROR] ${commandName}:`, error);
-      await ctx.reply("কমান্ড চালাতে সমস্যা হয়েছে।");
+      await ctx.reply("কমান্ড চালাতে সমস্যা হয়েছে। সিয়াম ভাই");
     }
 
     return true;
