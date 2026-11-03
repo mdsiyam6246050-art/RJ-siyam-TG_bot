@@ -1,13 +1,13 @@
 {
   "enabled": true,
-  "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+  "botToken": "9097173300:AAFA4HrzaH-0B04vrJGRiPhFjGpiRE3W2C4",
   "botName": "RJ SIYAM TELEGRAM BOT",
   "prefix": ",",
   "language": "bn",
 
   "owner": {
     "ids": [
-      "YOUR_TELEGRAM_USER_ID"
+      "8442705758"
     ]
   },
 
@@ -15,7 +15,7 @@
 
   "whitelist": {
     "enabled": false,
-    "ids": []
+    "ids": [8442705758]
   },
 
   "adminOnly": {
